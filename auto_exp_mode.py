@@ -36,11 +36,11 @@ plt.ion()
 # lr7 = list(LogReader('a2bddce0b6747e10/000002c9--19a235a8d4', sort_by_time=True))
 
 lrs = [
-  # (True, LogReader('d9b97c1d3b8c39b2/000000b6--4c41d698c4/q', sort_by_time=True)),
+  (True, LogReader('d9b97c1d3b8c39b2/000000b6--4c41d698c4/q', sort_by_time=True)),
   (True, LogReader('2c912ca5de3b1ee9/000001f4--d15b86861c/80:/q', sort_by_time=True)),
-  # (True, LogReader('NONENONENONENONE', sort_by_time=True)),
-  # (True, LogReader('NONENONENONENONE', sort_by_time=True)),
-  # (True, LogReader('NONENONENONENONE', sort_by_time=True)),
+  (True, LogReader('2c912ca5de3b1ee9/000001d2--5052ad43c8/q', sort_by_time=True)),
+  (True, LogReader('2c912ca5de3b1ee9/000001e5--eceae68fa2/q', sort_by_time=True)),
+  (True, LogReader('d9b97c1d3b8c39b2/000000c1--7712828b37/q', sort_by_time=True)),
   # (True, LogReader('NONENONENONENONE', sort_by_time=True)),
   # (True, LogReader('NONENONENONENONE', sort_by_time=True)),
   # (True, LogReader('NONENONENONENONE', sort_by_time=True)),
@@ -93,13 +93,14 @@ def reset_data():
 SECTION_LEN = 20
 
 for stock_route, lr in tqdm(lrs):
-  cp = CANParser("toyota_nodsu_pt_generated", [
-    ("PCM_CRUISE", 33),
-    ("CLUTCH", 15),
-    ("VSC1S07", 20),
-  ], 0)
-  cp2 = CANParser("toyota_nodsu_pt_generated", [("ACC_CONTROL", 33)], 2)
-  cp128 = CANParser("toyota_nodsu_pt_generated", [("ACC_CONTROL", 33)], 128)
+  # cp = CANParser("toyota_nodsu_pt_generated", [
+  #   ("PCM_CRUISE", 33),
+  #   ("CLUTCH", 15),
+  #   ("VSC1S07", 20),
+  # ], 0)
+  # cp2 = CANParser("toyota_nodsu_pt_generated", [("ACC_CONTROL", 33)], 2)
+  # cp128 = CANParser("toyota_nodsu_pt_generated", [("ACC_CONTROL", 33)], 128)
+  reset_data()
 
   CC = None
   CS = None
@@ -148,10 +149,10 @@ for stock_route, lr in tqdm(lrs):
 
       if len(X_speeds) == len(X_accels) == len(X_lead_speeds) == len(X_lead_dists) == len(X_lead_accels) == len(X_model_curvatures) == len(X_model_accelerations) == SECTION_LEN:
         X_section = list(zip(X_speeds, X_accels, X_lead_speeds, X_lead_dists, X_lead_accels, X_model_curvatures, X_model_accelerations, strict=True))
-        print(X_section)
+        # print(X_section)
         X_sections.append(X_section)
         Y_sections.append(msg.selfdriveState.experimentalMode)
-        print(Y_sections[-1])
+        # print(Y_sections[-1])
         reset_data()
 
 # raise Exception
@@ -279,6 +280,8 @@ print('Samples', len(X))
 # the model
 inputs = keras.layers.Input(shape=X.shape[1:])
 shared = keras.layers.BatchNormalization()(inputs)  # too lazy to scale
+# shared = keras.layers.GRU(64, return_sequences=True)(shared)
+shared = keras.layers.GRU(64)(shared)
 shared = keras.layers.Dense(32, kernel_regularizer=keras.regularizers.l2(0.001))(shared)
 # shared = keras.layers.BatchNormalization()(shared)
 shared = keras.layers.LeakyReLU()(shared)
@@ -288,15 +291,13 @@ shared = keras.layers.Dense(16, kernel_regularizer=keras.regularizers.l2(0.001))
 shared = keras.layers.LeakyReLU()(shared)
 # shared = keras.layers.Dropout(0.2)(shared)
 
-# two outputs
-accel_output = keras.layers.Dense(1, name='accel_output')(shared)
-brake_output = keras.layers.Dense(1, activation='sigmoid', name='brake_output')(shared)
+exp_output = keras.layers.Dense(1, activation='sigmoid', name='exp_output')(shared)
 
-model = keras.models.Model(inputs=inputs, outputs=[accel_output, brake_output])
+model = keras.models.Model(inputs=inputs, outputs=exp_output)
 
 model.compile(
-  optimizer='adam', loss={'accel_output': 'mse', 'brake_output': 'binary_crossentropy'},
-  metrics={'accel_output': ['mae'], 'brake_output': ['accuracy']},
+  optimizer='adam', loss={'exp_output': 'binary_crossentropy'},
+  metrics={'exp_output': ['accuracy']},
 )
 
 model.summary()
@@ -311,17 +312,18 @@ model.summary()
 
 # print('Samples', len(X))
 
-Y_accel = Y[:, 0]  # float
-Y_brake = Y[:, 1]  # binary (binary, 0/1)
+# Y_accel = Y[:, 0]  # float
+# Y_brake = Y[:, 1]  # binary (binary, 0/1)
 
 split_idx = int(len(X) * 0.8)
 X_train, X_test = X[:split_idx], X[split_idx:]
-Y_train_accel, Y_test_accel = Y_accel[:split_idx], Y_accel[split_idx:]
-Y_train_brake, Y_test_brake = Y_brake[:split_idx], Y_brake[split_idx:]
+Y_train, Y_test = Y[:split_idx], Y[split_idx:]
+# Y_train_accel, Y_test_accel = Y_accel[:split_idx], Y_accel[split_idx:]
+# Y_train_brake, Y_test_brake = Y_brake[:split_idx], Y_brake[split_idx:]
 
 try:
-  model.fit(X_train, [Y_train_accel, Y_train_brake], batch_size=256, epochs=10, shuffle=True,
-            validation_data=(X_test, [Y_test_accel, Y_test_brake]))
+  model.fit(X_train, Y_train, batch_size=256, epochs=10, shuffle=True,
+            validation_data=(X_test, Y_test))
 except KeyboardInterrupt:
   pass
 
