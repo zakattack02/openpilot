@@ -36,9 +36,15 @@ plt.ion()
 # lr7 = list(LogReader('a2bddce0b6747e10/000002c9--19a235a8d4', sort_by_time=True))
 
 lrs = [
-  (True, LogReader('d9b97c1d3b8c39b2/000000b9--1ff97b1087', sort_by_time=True)),
-  (True, LogReader('d9b97c1d3b8c39b2/000000bf--4bc0673df6', sort_by_time=True)),
-  (True, LogReader('d9b97c1d3b8c39b2/000000bd--1878ccda58', sort_by_time=True)),
+  # (True, LogReader('d9b97c1d3b8c39b2/000000b6--4c41d698c4/q', sort_by_time=True)),
+  (True, LogReader('2c912ca5de3b1ee9/000001f4--d15b86861c/80:/q', sort_by_time=True)),
+  # (True, LogReader('NONENONENONENONE', sort_by_time=True)),
+  # (True, LogReader('NONENONENONENONE', sort_by_time=True)),
+  # (True, LogReader('NONENONENONENONE', sort_by_time=True)),
+  # (True, LogReader('NONENONENONENONE', sort_by_time=True)),
+  # (True, LogReader('NONENONENONENONE', sort_by_time=True)),
+  # (True, LogReader('NONENONENONENONE', sort_by_time=True)),
+  # (True, LogReader('NONENONENONENONE', sort_by_time=True)),
 ]
 
 # Corolla w/ new tune maneuvers
@@ -47,22 +53,44 @@ lrs = [
 accel_deque = deque([0] * 1000, maxlen=1000)
 f = FirstOrderFilter(0.0, 1.0, 0.01)
 
-X_sections = [[]]
-Y_sections = [[]]
-X_accels = []
-X_accels_past = []
-X_accels_past1 = []
-X_accels_past2 = []
-X_accels_past3 = []
-X_accels_past4 = []
-X_accels_past5 = []
-X_accels_past6 = []
-X_pitches = []
-X_vegos = []
-X_permit_braking = []
+X_sections = []
+Y_sections = []
+# X_accels = []
+# X_accels_past = []
+# X_accels_past1 = []
+# X_accels_past2 = []
+# X_accels_past3 = []
+# X_accels_past4 = []
+# X_accels_past5 = []
+# X_accels_past6 = []
+# X_pitches = []
+# X_vegos = []
+# X_permit_braking = []
+#
+# y_aegos = []
+# predicted_aegos = []
 
-y_aegos = []
-predicted_aegos = []
+X_speeds = []
+X_accels = []
+X_lead_speeds = []
+X_lead_dists = []
+X_lead_accels = []
+X_model_curvatures = []
+X_model_accelerations = []
+
+def reset_data():
+  global X_speeds, X_accels, X_lead_speeds, X_lead_dists, X_lead_accels, X_model_curvatures, X_model_accelerations
+  X_speeds = []
+  X_accels = []
+  X_lead_speeds = []
+  X_lead_dists = []
+  X_lead_accels = []
+  X_model_curvatures = []
+  X_model_accelerations = []
+
+# Y_experimental_modes = []
+
+SECTION_LEN = 20
 
 for stock_route, lr in tqdm(lrs):
   cp = CANParser("toyota_nodsu_pt_generated", [
@@ -78,6 +106,8 @@ for stock_route, lr in tqdm(lrs):
   CP = None
   LP = None
   CO = None
+  RD = None
+  MDL = None
   prev_new_accel = 0
   long_active_frames = 0
 
@@ -85,57 +115,8 @@ for stock_route, lr in tqdm(lrs):
     if msg.which() == 'carControl':
       CC = msg.carControl
 
-    #   if CS is None or CP is None or not cp.can_valid or not cp2.can_valid or not cp128.can_valid:
-    #     continue
-    #
-    #   accel = CO.actuatorsOutput.accel
-    #   accel_deque.append(accel)
-    #   f.update(accel)
-    #   scale = 1.0
-    #
-    #   long_active_frames = long_active_frames + 1 if (CC.longActive and not CS.cruiseState.standstill) else 0
-    #
-    #   # let it settle in
-    #   if long_active_frames > 100:
-    #     X_accels.append(accel)
-    #     y_aegos.append(CS.aEgo)
-    #     # y_aegos.append(LP.accelerationDevice.x)
-    #     X_vegos.append(CS.vEgo)
-    #     X_pitches.append(CC.orientationNED[1])
-    #     X_permit_braking.append(cp128.vl['ACC_CONTROL']['PERMIT_BRAKING'])
-    #
-    #     X_accels_past.append(f.x)
-    #     X_accels_past2.append(accel_deque[-20])
-    #     X_accels_past3.append(accel_deque[-40])
-    #     X_accels_past4.append(accel_deque[-80])
-    #     X_accels_past5.append(accel_deque[-160])
-    #
-    #     # predict resulting aEgo from requested accel
-    #     new_accel = accel
-    #     if new_accel > 0:
-    #       scale = min(max(scale - (new_accel - accel_deque[-20]) * 5, 0.8), 1.0)
-    #       print(scale)
-    #     # else:
-    #     #   scale = 1.0
-    #     scale = min(scale + 0.005, 1.0)
-    #     new_accel *= scale
-    #     # new_accel = accel + max(cp.vl["PCM_CRUISE"]['NEUTRAL_FORCE'] / CP.mass, 0)
-    #
-    #     # if accel > 0:
-    #     #   new_accel = new_accel * 1.2
-    #     #
-    #     #  # TODO: add first order filter
-    #     # rate_limit = np.interp(CS.vEgo, [0, 5], [0.01, 0.02])
-    #     #
-    #     # new_accel = max(new_accel, prev_new_accel - rate_limit)
-    #     prev_new_accel = new_accel
-    #     predicted_aegos.append(new_accel)
-    #
-    #   # else:
-    #   #   accel_deque = deque([0.0] * 1000, maxlen=1000)
-
-    elif msg.which() == 'carOutput':
-      CO = msg.carOutput
+    elif msg.which() == 'radarState':
+      RD = msg.radarState
 
     elif msg.which() == 'carParams':
       CP = msg.carParams
@@ -146,167 +127,151 @@ for stock_route, lr in tqdm(lrs):
     elif msg.which() == 'carState':
       CS = msg.carState
 
-    elif msg.which() == 'can':
-      lst = can_capnp_to_list([msg.as_builder().to_bytes()])
-      cp.update_strings(lst)
-      cp2.update_strings(lst)
-      # cp128.update_strings(lst)
-      # print(cp.can_valid, cp2.can_valid, cp128.can_valid)
+    elif msg.which() == 'drivingModelData':
+      MDL = msg.drivingModelData
 
-      if not cp.can_valid or not cp2.can_valid:# or not cp128.can_valid:
+    elif msg.which() == 'selfdriveState':
+      if not RD or not CS or not CC or not MDL:
         continue
 
-      if CC is None or CS is None or not len(CC.orientationNED):
+      if not CC.enabled:
+        reset_data()
         continue
 
-      if CS.gasPressed or CS.brakePressed or CS.cruiseState.standstill or not CS.cruiseState.enabled:
-        if len(X_sections[-1]):
-          # print('new section!')
-          # print(X_sections[-1])
-          # print(Y_sections[-1])
-          # print()
-          X_sections.append([])
-          Y_sections.append([])
-        continue
+      X_speeds.append(CS.vEgo)
+      X_accels.append(CS.aEgo)
+      X_lead_speeds.append(RD.leadOne.vLeadK)
+      X_lead_dists.append(RD.leadOne.dRel)
+      X_lead_accels.append(RD.leadOne.aLeadK)
+      X_model_curvatures.append(MDL.action.desiredCurvature)
+      X_model_accelerations.append(MDL.action.desiredAcceleration)
 
-      car_pitch = math.radians(cp.vl['VSC1S07']['ASLP'])
-      pcm_accel_net = cp.vl['PCM_CRUISE']['ACCEL_NET']
-      clutch_accel_net = cp.vl['CLUTCH']['ACCEL_NET']
+      if len(X_speeds) == len(X_accels) == len(X_lead_speeds) == len(X_lead_dists) == len(X_lead_accels) == len(X_model_curvatures) == len(X_model_accelerations) == SECTION_LEN:
+        X_section = list(zip(X_speeds, X_accels, X_lead_speeds, X_lead_dists, X_lead_accels, X_model_curvatures, X_model_accelerations, strict=True))
+        print(X_section)
+        X_sections.append(X_section)
+        Y_sections.append(msg.selfdriveState.experimentalMode)
+        print(Y_sections[-1])
+        reset_data()
 
-      pitch = CC.orientationNED[1]
-      stock_camera_accel = cp2.vl['ACC_CONTROL']['ACCEL_CMD']
-      stock_camera_permit_braking = cp2.vl['ACC_CONTROL']['PERMIT_BRAKING']
-      # mini car is needed to get high val_brake_output_accuracy because it is taken into consideration
-      # by camera when setting permit braking
-      mini_car = cp2.vl['ACC_CONTROL']['MINI_CAR']
+# raise Exception
 
-      # GVC does not overshoot ego acceleration when starting from stop, but still has a similar delay
-      gvc = cp.vl["VSC1S07"]["GVC"]
-      a_ego = np.interp(CS.vEgo, [1.0, 2.0], [gvc, CS.aEgo])
+# # keep track of sections because data is not continuous
+# # delay cmd (y) by 15 frames so that it roughly matches the result (x)
+# X, Y = [], []
+# for x_section, y_section in zip(X_sections, Y_sections):
+#   # trim off first 0.5s after engaging
+#   X.extend(x_section[15:][50:])
+#   Y.extend(y_section[:-15][50:])
 
-      X_sections[-1].append([CS.vEgo, a_ego, pitch, mini_car, car_pitch, pcm_accel_net, clutch_accel_net])
-      Y_sections[-1].append([stock_camera_accel, stock_camera_permit_braking])
-      # print(X_sections[-1][-1])
-      # print(Y_sections[-1][-1])
-      # print()
-
-
-# keep track of sections because data is not continuous
-# delay cmd (y) by 15 frames so that it roughly matches the result (x)
-X, Y = [], []
-for x_section, y_section in zip(X_sections, Y_sections):
-  # trim off first 0.5s after engaging
-  X.extend(x_section[15:][50:])
-  Y.extend(y_section[:-15][50:])
-
-X = np.array(X)
-Y = np.array(Y)
+X = np.array(X_sections)
+Y = np.array(Y_sections)
 assert len(X) == len(Y)
 print('Samples', len(X))
 
-def plot_data_stats():
-  # scatter plot where x is aEgo and y is accel cmd
-  fig, ax = plt.subplots(1)
-  ax.scatter([x[1] for x in X], [y[0] for y in Y], s=1)
-  ax.plot([-5, 5], [-5, 5], 'r--', label='y=x')
-  ax.set_xlabel('aEgo')
-  ax.set_ylabel('accel cmd')
-  ax.set_title('aEgo vs accel cmd')
-  ax.set_xlim(-5, 5)
-  ax.set_ylim(-5, 5)
-  plt.legend()
-  plt.show()
-  # plt.pause(100)
+# def plot_data_stats():
+#   # scatter plot where x is aEgo and y is accel cmd
+#   fig, ax = plt.subplots(1)
+#   ax.scatter([x[1] for x in X], [y[0] for y in Y], s=1)
+#   ax.plot([-5, 5], [-5, 5], 'r--', label='y=x')
+#   ax.set_xlabel('aEgo')
+#   ax.set_ylabel('accel cmd')
+#   ax.set_title('aEgo vs accel cmd')
+#   ax.set_xlim(-5, 5)
+#   ax.set_ylim(-5, 5)
+#   plt.legend()
+#   plt.show()
+#   # plt.pause(100)
+#
+#
+# plot_data_stats()
 
 
-plot_data_stats()
-
-
-# FIXME: this one is vibe coded and terrible, but cool idea
-def plot_data_stats2():
-  # Assumes X and Y are defined in the global scope.
-  vEgo = np.array([x[0] for x in X])
-  aEgo = np.array([x[1] for x in X])
-  pitch = np.array([x[2] for x in X])
-  accel_cmd = np.array([y[0] for y in Y])
-
-  # --- Plot setup ---
-  fig, ax = plt.subplots()
-  # Adjust layout to accommodate sliders and toggles.
-  plt.subplots_adjust(bottom=0.3, right=0.8)
-
-  # Plot the initial scatter using ALL the points (before filtering).
-  sc = ax.scatter(aEgo, accel_cmd, c=pitch, s=3, cmap='viridis')
-  ax.set_xlabel('aEgo')
-  ax.set_ylabel('accel_cmd')
-  ax.set_title('aEgo vs accel_cmd colored by pitch')
-  cb = plt.colorbar(sc, ax=ax)
-  cb.set_label("Pitch")
-
-  # --- Add y = x reference line ---
-  # Create a reference line over the range of aEgo values
-  x_line = np.linspace(np.min(aEgo), np.max(aEgo), 100)
-  ax.plot(x_line, x_line, 'r--', label='y = x')
-  ax.legend(loc='upper left')
-
-  # --- Slider axes for filter centers ---
-  ax_speed = plt.axes([0.15, 0.2, 0.65, 0.03])
-  ax_pitch = plt.axes([0.15, 0.15, 0.65, 0.03])
-  # Slider for vEgo center with its range set to that of vEgo.
-  s_speed = Slider(ax_speed, 'vEgo Center', vEgo.min(), vEgo.max(), valinit=vEgo.mean())
-  # Slider for pitch center (in rad) with its range set to that of pitch.
-  s_pitch = Slider(ax_pitch, 'Pitch Center (rad)', pitch.min(), pitch.max(), valinit=pitch.mean())
-
-  # --- Toggle checkboxes ---
-  # Place checkboxes in an axes on the right.
-  ax_check = plt.axes([0.82, 0.4, 0.15, 0.15])
-  # Two toggles: one to apply the speed filter and one for the pitch filter.
-  check = CheckButtons(ax_check, ['Speed Filter', 'Pitch Filter'], [True, True])
-
-  def update(val):
-    speed_center = s_speed.val
-    pitch_center = s_pitch.val
-
-    # If the speed filter is enabled, select points within ±5 m/s.
-    if check.get_status()[0]:
-      mask_speed = np.abs(vEgo - speed_center) <= 5.0
-    else:
-      mask_speed = np.ones_like(vEgo, dtype=bool)
-    # If the pitch filter is enabled, select points within ±5° (in radians).
-    if check.get_status()[1]:
-      mask_pitch = np.abs(pitch - pitch_center) <= np.deg2rad(5)
-    else:
-      mask_pitch = np.ones_like(pitch, dtype=bool)
-
-    mask = mask_speed & mask_pitch
-
-    # Decimate the data if too many points are selected
-    N_selected = np.sum(mask)
-    decimation_threshold = 10000  # adjust threshold as needed
-    if N_selected > decimation_threshold:
-      indices = np.where(mask)[0]
-      chosen_indices = np.random.choice(indices, decimation_threshold, replace=False)
-      current_mask = np.zeros_like(mask, dtype=bool)
-      current_mask[chosen_indices] = True
-    else:
-      current_mask = mask
-
-    # Update scatter plot with filtered (and possibly decimated) data.
-    offsets = np.column_stack((aEgo[current_mask], accel_cmd[current_mask]))
-    sc.set_offsets(offsets)
-    sc.set_array(pitch[current_mask])
-    fig.canvas.draw_idle()
-
-  s_speed.on_changed(update)
-  s_pitch.on_changed(update)
-  check.on_clicked(lambda label: update(None))
-
-  update(None)  # initial draw
-  plt.show()
-
-
-# Call the function to run the visualization.
-plot_data_stats2()
+# # FIXME: this one is vibe coded and terrible, but cool idea
+# def plot_data_stats2():
+#   # Assumes X and Y are defined in the global scope.
+#   vEgo = np.array([x[0] for x in X])
+#   aEgo = np.array([x[1] for x in X])
+#   pitch = np.array([x[2] for x in X])
+#   accel_cmd = np.array([y[0] for y in Y])
+#
+#   # --- Plot setup ---
+#   fig, ax = plt.subplots()
+#   # Adjust layout to accommodate sliders and toggles.
+#   plt.subplots_adjust(bottom=0.3, right=0.8)
+#
+#   # Plot the initial scatter using ALL the points (before filtering).
+#   sc = ax.scatter(aEgo, accel_cmd, c=pitch, s=3, cmap='viridis')
+#   ax.set_xlabel('aEgo')
+#   ax.set_ylabel('accel_cmd')
+#   ax.set_title('aEgo vs accel_cmd colored by pitch')
+#   cb = plt.colorbar(sc, ax=ax)
+#   cb.set_label("Pitch")
+#
+#   # --- Add y = x reference line ---
+#   # Create a reference line over the range of aEgo values
+#   x_line = np.linspace(np.min(aEgo), np.max(aEgo), 100)
+#   ax.plot(x_line, x_line, 'r--', label='y = x')
+#   ax.legend(loc='upper left')
+#
+#   # --- Slider axes for filter centers ---
+#   ax_speed = plt.axes([0.15, 0.2, 0.65, 0.03])
+#   ax_pitch = plt.axes([0.15, 0.15, 0.65, 0.03])
+#   # Slider for vEgo center with its range set to that of vEgo.
+#   s_speed = Slider(ax_speed, 'vEgo Center', vEgo.min(), vEgo.max(), valinit=vEgo.mean())
+#   # Slider for pitch center (in rad) with its range set to that of pitch.
+#   s_pitch = Slider(ax_pitch, 'Pitch Center (rad)', pitch.min(), pitch.max(), valinit=pitch.mean())
+#
+#   # --- Toggle checkboxes ---
+#   # Place checkboxes in an axes on the right.
+#   ax_check = plt.axes([0.82, 0.4, 0.15, 0.15])
+#   # Two toggles: one to apply the speed filter and one for the pitch filter.
+#   check = CheckButtons(ax_check, ['Speed Filter', 'Pitch Filter'], [True, True])
+#
+#   def update(val):
+#     speed_center = s_speed.val
+#     pitch_center = s_pitch.val
+#
+#     # If the speed filter is enabled, select points within ±5 m/s.
+#     if check.get_status()[0]:
+#       mask_speed = np.abs(vEgo - speed_center) <= 5.0
+#     else:
+#       mask_speed = np.ones_like(vEgo, dtype=bool)
+#     # If the pitch filter is enabled, select points within ±5° (in radians).
+#     if check.get_status()[1]:
+#       mask_pitch = np.abs(pitch - pitch_center) <= np.deg2rad(5)
+#     else:
+#       mask_pitch = np.ones_like(pitch, dtype=bool)
+#
+#     mask = mask_speed & mask_pitch
+#
+#     # Decimate the data if too many points are selected
+#     N_selected = np.sum(mask)
+#     decimation_threshold = 10000  # adjust threshold as needed
+#     if N_selected > decimation_threshold:
+#       indices = np.where(mask)[0]
+#       chosen_indices = np.random.choice(indices, decimation_threshold, replace=False)
+#       current_mask = np.zeros_like(mask, dtype=bool)
+#       current_mask[chosen_indices] = True
+#     else:
+#       current_mask = mask
+#
+#     # Update scatter plot with filtered (and possibly decimated) data.
+#     offsets = np.column_stack((aEgo[current_mask], accel_cmd[current_mask]))
+#     sc.set_offsets(offsets)
+#     sc.set_array(pitch[current_mask])
+#     fig.canvas.draw_idle()
+#
+#   s_speed.on_changed(update)
+#   s_pitch.on_changed(update)
+#   check.on_clicked(lambda label: update(None))
+#
+#   update(None)  # initial draw
+#   plt.show()
+#
+#
+# # Call the function to run the visualization.
+# plot_data_stats2()
 
 # raise Exception
 # train model to simulate aEgo from requested accel
