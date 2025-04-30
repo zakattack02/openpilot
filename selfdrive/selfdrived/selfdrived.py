@@ -2,6 +2,8 @@
 import os
 import time
 import threading
+import numpy as np
+import onnxruntime as ort
 
 import cereal.messaging as messaging
 
@@ -9,8 +11,8 @@ from cereal import car, log
 from msgq.visionipc import VisionIpcClient, VisionStreamType
 from opendbc.safety import ALTERNATIVE_EXPERIENCE
 
-
 from openpilot.common.params import Params
+from openpilot.common.basedir import BASEDIR
 from openpilot.common.realtime import config_realtime_process, Priority, Ratekeeper, DT_CTRL
 from openpilot.common.swaglog import cloudlog
 from openpilot.common.gps import get_gps_location_service
@@ -76,7 +78,7 @@ class SelfdriveD:
       ignore += ['roadCameraState', 'wideRoadCameraState']
     self.sm = messaging.SubMaster(['deviceState', 'pandaStates', 'peripheralState', 'modelV2', 'liveCalibration',
                                    'carOutput', 'driverMonitoringState', 'longitudinalPlan', 'livePose', 'liveDelay',
-                                   'managerState', 'liveParameters', 'radarState', 'liveTorqueParameters',
+                                   'managerState', 'liveParameters', 'radarState', 'liveTorqueParameters', 'drivingModelData',
                                    'controlsState', 'carControl', 'driverAssistance', 'alertDebug'] + \
                                    self.camera_packets + self.sensor_packets + self.gps_packets,
                                   ignore_alive=ignore, ignore_avg_freq=ignore,
@@ -135,6 +137,10 @@ class SelfdriveD:
       set_offroad_alert("Offroad_CarUnrecognized", True)
     elif self.CP.passive:
       self.events.add(EventName.dashcamMode, static=True)
+
+    self.model_len = 30 * 10
+    self.model_data = np.zeros((self.model_len, 8)).tolist()
+    self.model = ort.InferenceSession(BASEDIR + '/exp_mode.onnx')
 
   def update_events(self, CS):
     """Compute onroadEvents from carState"""
@@ -378,6 +384,20 @@ class SelfdriveD:
 
     self.sm.update(0)
 
+    # trained on decimated qlogs, so 10hz
+    if self.sm.frame % 10 == 0:
+      sample = [CS.vEgo, CS.aEgo, CS.gasPressed, self.sm['radarState'].leadOne.vLeadK, self.sm['radarState'].leadOne.dRel, self.sm['radarState'].leadOne.aLeadK,
+                self.sm['drivingModelData'].action.desiredCurvature, self.sm['drivingModelData'].action.desiredAcceleration]
+      self.model_data.append(sample)
+
+      while len(self.model_data) > self.model_len:
+        self.model_data.pop(0)
+
+      print(len(self.model_data))
+      output = self.model.run(None, {'input': np.array([self.model_data]).astype(np.float32)})
+      print(output)
+      self.experimental_mode = bool(round(output[0][0][0]))
+
     if not self.initialized:
       all_valid = CS.canValid and self.sm.all_checks()
       timed_out = self.sm.frame * DT_CTRL > 6.
@@ -482,7 +502,7 @@ class SelfdriveD:
   def params_thread(self, evt):
     while not evt.is_set():
       self.is_metric = self.params.get_bool("IsMetric")
-      self.experimental_mode = self.params.get_bool("ExperimentalMode") and self.CP.openpilotLongitudinalControl
+      # self.experimental_mode = self.params.get_bool("ExperimentalMode") and self.CP.openpilotLongitudinalControl
       self.personality = self.read_personality_param()
       time.sleep(0.1)
 
