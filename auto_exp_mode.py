@@ -80,50 +80,35 @@ lrs = [
 # Corolla w/ new tune maneuvers
 # lr8 = list(LogReader('a2bddce0b6747e10/000002a9--a207f8b605', sort_by_time=True))
 
-accel_deque = deque([0] * 1000, maxlen=1000)
-f = FirstOrderFilter(0.0, 1.0, 0.01)
+DECIMATION = 10
+SECTION_LEN = 30 * DECIMATION
+STRIDE = 5 * DECIMATION
 
 X_sections = []
 Y_sections = []
-# X_accels = []
-# X_accels_past = []
-# X_accels_past1 = []
-# X_accels_past2 = []
-# X_accels_past3 = []
-# X_accels_past4 = []
-# X_accels_past5 = []
-# X_accels_past6 = []
-# X_pitches = []
-# X_vegos = []
-# X_permit_braking = []
-#
-# y_aegos = []
-# predicted_aegos = []
 
-X_speeds = []
-X_accels = []
-X_gas_pressed = []
-X_lead_speeds = []
-X_lead_dists = []
-X_lead_accels = []
-X_model_curvatures = []
-X_model_accelerations = []
+X_speeds = deque(maxlen=SECTION_LEN)
+X_accels = deque(maxlen=SECTION_LEN)
+X_gas_pressed = deque(maxlen=SECTION_LEN)
+X_brake_pressed = deque(maxlen=SECTION_LEN)
+X_enabled = deque(maxlen=SECTION_LEN)
+X_lead_speeds = deque(maxlen=SECTION_LEN)
+X_lead_dists = deque(maxlen=SECTION_LEN)
+X_lead_accels = deque(maxlen=SECTION_LEN)
+X_model_curvatures = deque(maxlen=SECTION_LEN)
+X_model_accelerations = deque(maxlen=SECTION_LEN)
+
+tracked_bufs = [
+  X_speeds, X_accels, X_gas_pressed, X_brake_pressed, X_enabled,
+  X_lead_speeds, X_lead_dists, X_lead_accels, X_model_curvatures, X_model_accelerations,
+]
+
 
 def reset_data():
-  global X_speeds, X_accels, X_gas_pressed, X_lead_speeds, X_lead_dists, X_lead_accels, X_model_curvatures, X_model_accelerations
-  X_speeds = []
-  X_accels = []
-  X_gas_pressed = []
-  X_lead_speeds = []
-  X_lead_dists = []
-  X_lead_accels = []
-  X_model_curvatures = []
-  X_model_accelerations = []
+  for buf in tracked_bufs:
+    buf.clear()
 
 # Y_experimental_modes = []
-
-DECIMATION = 10
-SECTION_LEN = 30 * DECIMATION
 
 for stock_route, lr in tqdm(lrs):
   if not lr.first('carParams').openpilotLongitudinalControl:
@@ -177,19 +162,24 @@ for stock_route, lr in tqdm(lrs):
       X_speeds.append(CS.vEgo)
       X_accels.append(CS.aEgo)
       X_gas_pressed.append(CS.gasPressed)
+      X_brake_pressed.append(CS.gasPressed)
+      X_enabled.append(CC.enabled)
       X_lead_speeds.append(RD.leadOne.vLeadK)
       X_lead_dists.append(RD.leadOne.dRel)
       X_lead_accels.append(RD.leadOne.aLeadK)
       X_model_curvatures.append(MDL.action.desiredCurvature)
       X_model_accelerations.append(MDL.action.desiredAcceleration)
 
-      if len(X_speeds) == len(X_accels) == len(X_gas_pressed) == len(X_lead_speeds) == len(X_lead_dists) == len(X_lead_accels) == len(X_model_curvatures) == len(X_model_accelerations) == SECTION_LEN:
-        X_section = list(zip(X_speeds, X_accels, X_gas_pressed, X_lead_speeds, X_lead_dists, X_lead_accels, X_model_curvatures, X_model_accelerations, strict=True))
+      # print(set(map(len, tracked_bufs)))
+      if set(map(len, tracked_bufs)) == {SECTION_LEN}:
+        X_section = list(zip(*tracked_bufs, strict=True))
         # print(X_section)
         X_sections.append(X_section)
         Y_sections.append(msg.selfdriveState.experimentalMode)
         # print(Y_sections[-1])
-        reset_data()
+        for buf in tracked_bufs:
+          for _ in range(STRIDE):
+            buf.popleft()
 
 # raise Exception
 
@@ -314,10 +304,12 @@ print('Samples', len(X))
 # train model to simulate aEgo from requested accel
 
 # the model
+
+USE_CUDNN = True
 inputs = keras.layers.Input(shape=X.shape[1:])
 shared = keras.layers.BatchNormalization()(inputs)  # too lazy to scale
-# shared = keras.layers.GRU(64, return_sequences=True)(shared)
-shared = keras.layers.GRU(64, use_cudnn=False)(shared)
+# shared = keras.layers.GRU(64, use_cudnn=USE_CUDNN, return_sequences=True)(shared)
+shared = keras.layers.GRU(64, use_cudnn=USE_CUDNN)(shared)
 shared = keras.layers.Dense(32, kernel_regularizer=keras.regularizers.l2(0.001))(shared)
 # shared = keras.layers.BatchNormalization()(shared)
 shared = keras.layers.LeakyReLU()(shared)
@@ -338,29 +330,14 @@ model.compile(
 
 model.summary()
 
-# X = np.array([X_accels, X_accels_past2, X_accels_past3, X_accels_past4, X_accels_past5, X_pitches, X_vegos]).T
-# # X = np.array([X_accels, X_accels_past, X_pitches, X_vegos]).T
-# y = np.array(y_aegos)
-
-# offset X
-# X = X[:-25]
-# y = y[25:]
-
-# print('Samples', len(X))
-
-# Y_accel = Y[:, 0]  # float
-# Y_brake = Y[:, 1]  # binary (binary, 0/1)
-
 split_idx = int(len(X) * 0.8)
 X_train, X_test = X[:split_idx], X[split_idx:]
 Y_train, Y_test = Y[:split_idx], Y[split_idx:]
-# Y_train_accel, Y_test_accel = Y_accel[:split_idx], Y_accel[split_idx:]
-# Y_train_brake, Y_test_brake = Y_brake[:split_idx], Y_brake[split_idx:]
 
 class_weight = {True: np.mean(~Y_train), False: np.mean(Y_train)}
 
 try:
-  model.fit(X_train, Y_train, batch_size=64, epochs=20, shuffle=True,
+  model.fit(X_train, Y_train, batch_size=256, epochs=20, shuffle=True,
             validation_data=(X_test, Y_test), class_weight=class_weight)
 except KeyboardInterrupt:
   pass
