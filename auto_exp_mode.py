@@ -22,7 +22,7 @@ from tools.lib.logreader import LogReader
 from opendbc.can.parser import CANParser
 from openpilot.selfdrive.pandad import can_capnp_to_list
 from openpilot.common.filter_simple import FirstOrderFilter
-from opendbc.car.common.basedir import BASEDIR
+from openpilot.common.basedir import BASEDIR
 
 plt.ion()
 
@@ -37,14 +37,44 @@ plt.ion()
 
 lrs = [
   (True, LogReader('d9b97c1d3b8c39b2/000000b6--4c41d698c4/q', sort_by_time=True)),
-  (True, LogReader('2c912ca5de3b1ee9/000001f4--d15b86861c/80:/q', sort_by_time=True)),
+  (True, LogReader('2c912ca5de3b1ee9/000001f4--d15b86861c/q', sort_by_time=True)),
   (True, LogReader('2c912ca5de3b1ee9/000001d2--5052ad43c8/q', sort_by_time=True)),
   (True, LogReader('2c912ca5de3b1ee9/000001e5--eceae68fa2/q', sort_by_time=True)),
   (True, LogReader('d9b97c1d3b8c39b2/000000c1--7712828b37/q', sort_by_time=True)),
-  # (True, LogReader('NONENONENONENONE', sort_by_time=True)),
-  # (True, LogReader('NONENONENONENONE', sort_by_time=True)),
-  # (True, LogReader('NONENONENONENONE', sort_by_time=True)),
-  # (True, LogReader('NONENONENONENONE', sort_by_time=True)),
+  (True, LogReader('d9b97c1d3b8c39b2/000000b6--4c41d698c4/q', sort_by_time=True)),
+  (True, LogReader('d9b97c1d3b8c39b2/000000a6--79e372b105/q', sort_by_time=True)),
+  (True, LogReader('d9b97c1d3b8c39b2/0000008f--d66e410a2a/q', sort_by_time=True)),
+  (True, LogReader('d9b97c1d3b8c39b2/0000008d--68d9a569e1/q', sort_by_time=True)),
+  (True, LogReader('2c912ca5de3b1ee9/000001ec--6b5c4edefe/q', sort_by_time=True)),
+  (True, LogReader('d9b97c1d3b8c39b2/000000c1--7712828b37/q', sort_by_time=True)),
+  (True, LogReader('d9b97c1d3b8c39b2/000000c1--7712828b37/q', sort_by_time=True)),
+  (True, LogReader('d9b97c1d3b8c39b2/000000bc--1d3e454aa1/q', sort_by_time=True)),
+  (True, LogReader('d9b97c1d3b8c39b2/000000bb--ce04fddbee/q', sort_by_time=True)),
+  (True, LogReader('d9b97c1d3b8c39b2/000000b8--da4a4290aa/q', sort_by_time=True)),
+  (True, LogReader('d9b97c1d3b8c39b2/000000b7--6d46bd2283/q', sort_by_time=True)),
+  (True, LogReader('d9b97c1d3b8c39b2/000000c3--45657c2376/q', sort_by_time=True)),
+  (True, LogReader('d9b97c1d3b8c39b2/000000c2--ead5b24827/q', sort_by_time=True)),
+  (True, LogReader('d9b97c1d3b8c39b2/000000cf--4170a0b8c1/q', sort_by_time=True)),
+  (True, LogReader('d9b97c1d3b8c39b2/000000d0--371918fedc/q', sort_by_time=True)),
+  (True, LogReader('d9b97c1d3b8c39b2/000000d1--8209deb086/q', sort_by_time=True)),
+  (True, LogReader('d9b97c1d3b8c39b2/000000cf--4170a0b8c1/q', sort_by_time=True)),
+  (True, LogReader('d9b97c1d3b8c39b2/0000008f--d66e410a2a/q', sort_by_time=True)),
+  (True, LogReader('d9b97c1d3b8c39b2/0000008e--00a787d7fc/q', sort_by_time=True)),
+  (True, LogReader('d9b97c1d3b8c39b2/0000008d--68d9a569e1/q', sort_by_time=True)),
+  (True, LogReader('d9b97c1d3b8c39b2/00000082--544ad55f1a/q', sort_by_time=True)),
+  (True, LogReader('d9b97c1d3b8c39b2/00000050--74e83a7056/q', sort_by_time=True)),
+  (True, LogReader('2c912ca5de3b1ee9/000001fd--8785cf106f/q', sort_by_time=True)),
+  (True, LogReader('2c912ca5de3b1ee9/000001fe--bb5a9536cd/q', sort_by_time=True)),
+  (True, LogReader('2c912ca5de3b1ee9/000001fb--df219d064d/q', sort_by_time=True)),
+  (True, LogReader('2c912ca5de3b1ee9/000001e8--7a35eff0d1/q', sort_by_time=True)),
+  (True, LogReader('2c912ca5de3b1ee9/00000195--2826236027/q', sort_by_time=True)),
+  (True, LogReader('2c912ca5de3b1ee9/00000187--d866d5b534/q', sort_by_time=True)),
+  (True, LogReader('2c912ca5de3b1ee9/0000017f--f0cdc90388/q', sort_by_time=True)),
+  (True, LogReader('2c912ca5de3b1ee9/0000015a--bb0978aced/q', sort_by_time=True)),
+  (True, LogReader('2c912ca5de3b1ee9/00000159--e44e9326dc/q', sort_by_time=True)),
+  (True, LogReader('2c912ca5de3b1ee9/00000158--cb7389803f/q', sort_by_time=True)),
+  # (True, LogReader('NONENOENEONEONE', sort_by_time=True)),
+  # (True, LogReader('NONENOENEONEONE', sort_by_time=True)),
 ]
 
 # Corolla w/ new tune maneuvers
@@ -72,6 +102,7 @@ Y_sections = []
 
 X_speeds = []
 X_accels = []
+X_gas_pressed = []
 X_lead_speeds = []
 X_lead_dists = []
 X_lead_accels = []
@@ -79,9 +110,10 @@ X_model_curvatures = []
 X_model_accelerations = []
 
 def reset_data():
-  global X_speeds, X_accels, X_lead_speeds, X_lead_dists, X_lead_accels, X_model_curvatures, X_model_accelerations
+  global X_speeds, X_accels, X_gas_pressed, X_lead_speeds, X_lead_dists, X_lead_accels, X_model_curvatures, X_model_accelerations
   X_speeds = []
   X_accels = []
+  X_gas_pressed = []
   X_lead_speeds = []
   X_lead_dists = []
   X_lead_accels = []
@@ -90,9 +122,12 @@ def reset_data():
 
 # Y_experimental_modes = []
 
-SECTION_LEN = 20
+DECIMATION = 10
+SECTION_LEN = 30 * DECIMATION
 
 for stock_route, lr in tqdm(lrs):
+  if not lr.first('carParams').openpilotLongitudinalControl:
+    continue
   # cp = CANParser("toyota_nodsu_pt_generated", [
   #   ("PCM_CRUISE", 33),
   #   ("CLUTCH", 15),
@@ -141,14 +176,15 @@ for stock_route, lr in tqdm(lrs):
 
       X_speeds.append(CS.vEgo)
       X_accels.append(CS.aEgo)
+      X_gas_pressed.append(CS.gasPressed)
       X_lead_speeds.append(RD.leadOne.vLeadK)
       X_lead_dists.append(RD.leadOne.dRel)
       X_lead_accels.append(RD.leadOne.aLeadK)
       X_model_curvatures.append(MDL.action.desiredCurvature)
       X_model_accelerations.append(MDL.action.desiredAcceleration)
 
-      if len(X_speeds) == len(X_accels) == len(X_lead_speeds) == len(X_lead_dists) == len(X_lead_accels) == len(X_model_curvatures) == len(X_model_accelerations) == SECTION_LEN:
-        X_section = list(zip(X_speeds, X_accels, X_lead_speeds, X_lead_dists, X_lead_accels, X_model_curvatures, X_model_accelerations, strict=True))
+      if len(X_speeds) == len(X_accels) == len(X_gas_pressed) == len(X_lead_speeds) == len(X_lead_dists) == len(X_lead_accels) == len(X_model_curvatures) == len(X_model_accelerations) == SECTION_LEN:
+        X_section = list(zip(X_speeds, X_accels, X_gas_pressed, X_lead_speeds, X_lead_dists, X_lead_accels, X_model_curvatures, X_model_accelerations, strict=True))
         # print(X_section)
         X_sections.append(X_section)
         Y_sections.append(msg.selfdriveState.experimentalMode)
@@ -281,14 +317,14 @@ print('Samples', len(X))
 inputs = keras.layers.Input(shape=X.shape[1:])
 shared = keras.layers.BatchNormalization()(inputs)  # too lazy to scale
 # shared = keras.layers.GRU(64, return_sequences=True)(shared)
-shared = keras.layers.GRU(64)(shared)
+shared = keras.layers.GRU(64, use_cudnn=False)(shared)
 shared = keras.layers.Dense(32, kernel_regularizer=keras.regularizers.l2(0.001))(shared)
 # shared = keras.layers.BatchNormalization()(shared)
 shared = keras.layers.LeakyReLU()(shared)
 # shared = keras.layers.Dropout(0.2)(shared)
 
-shared = keras.layers.Dense(16, kernel_regularizer=keras.regularizers.l2(0.001))(shared)
-shared = keras.layers.LeakyReLU()(shared)
+# shared = keras.layers.Dense(16, kernel_regularizer=keras.regularizers.l2(0.001))(shared)
+# shared = keras.layers.LeakyReLU()(shared)
 # shared = keras.layers.Dropout(0.2)(shared)
 
 exp_output = keras.layers.Dense(1, activation='sigmoid', name='exp_output')(shared)
@@ -321,9 +357,11 @@ Y_train, Y_test = Y[:split_idx], Y[split_idx:]
 # Y_train_accel, Y_test_accel = Y_accel[:split_idx], Y_accel[split_idx:]
 # Y_train_brake, Y_test_brake = Y_brake[:split_idx], Y_brake[split_idx:]
 
+class_weight = {True: np.mean(~Y_train), False: np.mean(Y_train)}
+
 try:
-  model.fit(X_train, Y_train, batch_size=256, epochs=10, shuffle=True,
-            validation_data=(X_test, Y_test))
+  model.fit(X_train, Y_train, batch_size=64, epochs=20, shuffle=True,
+            validation_data=(X_test, Y_test), class_weight=class_weight)
 except KeyboardInterrupt:
   pass
 
@@ -353,13 +391,13 @@ def plot_model_prediction():
 print("Saving model")
 spec = (tf.TensorSpec((None, *model.input_shape[1:]), tf.float32, name="input"),)
 onnx_model, _ = tf2onnx.convert.from_keras(model, input_signature=spec)
-onnx.save(onnx_model, BASEDIR + '/toyota/camera.onnx')
+onnx.save(onnx_model, BASEDIR + '/exp_mode.onnx')
 
 X_pred = model.predict(X)
 predicted_camera_accel = X_pred[0].flatten()
 predicted_permit_braking = X_pred[1].flatten()
 
-loaded_model = ort.InferenceSession(BASEDIR + '/toyota/camera.onnx')
+loaded_model = ort.InferenceSession(BASEDIR + '/exp_mode.onnx')
 
 predicted_camera_accel_loaded = loaded_model.run(None, {'input': X.astype(np.float32)})[0].flatten()
 
