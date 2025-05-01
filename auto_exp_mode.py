@@ -82,7 +82,7 @@ lrs = [
 
 DECIMATION = 2
 SECTION_LEN = 60 * DECIMATION
-STRIDE = 5 * DECIMATION
+STRIDE = 10 * DECIMATION
 
 X_sections = []
 Y_sections = []
@@ -90,8 +90,6 @@ Y_sections = []
 X_speeds = deque(maxlen=SECTION_LEN)
 X_accels = deque(maxlen=SECTION_LEN)
 X_gas_pressed = deque(maxlen=SECTION_LEN)
-X_brake_pressed = deque(maxlen=SECTION_LEN)
-X_enabled = deque(maxlen=SECTION_LEN)
 X_lead_speeds = deque(maxlen=SECTION_LEN)
 X_lead_dists = deque(maxlen=SECTION_LEN)
 X_lead_accels = deque(maxlen=SECTION_LEN)
@@ -99,7 +97,7 @@ X_model_curvatures = deque(maxlen=SECTION_LEN)
 X_model_accelerations = deque(maxlen=SECTION_LEN)
 
 tracked_bufs = [
-  X_speeds, X_accels, X_gas_pressed, X_brake_pressed, X_enabled,
+  X_speeds, X_accels, X_gas_pressed,
   X_lead_speeds, X_lead_dists, X_lead_accels, X_model_curvatures, X_model_accelerations,
 ]
 
@@ -168,8 +166,6 @@ for stock_route, lr in tqdm(lrs):
       X_speeds.append(CS.vEgo)
       X_accels.append(CS.aEgo)
       X_gas_pressed.append(CS.gasPressed)
-      X_brake_pressed.append(CS.gasPressed)
-      X_enabled.append(CC.enabled)
       X_lead_speeds.append(RD.leadOne.vLeadK)
       X_lead_dists.append(RD.leadOne.dRel)
       X_lead_accels.append(RD.leadOne.aLeadK)
@@ -311,19 +307,24 @@ print('Samples', len(X))
 
 # the model
 
+normalizer = keras.layers.Normalization(axis=-1)
+normalizer.adapt(X)
+
 USE_CUDNN = False
+# DROPOUT = 0.5
+
 inputs = keras.layers.Input(shape=X.shape[1:])
-shared = keras.layers.BatchNormalization()(inputs)  # too lazy to scale
-# shared = keras.layers.GRU(64, use_cudnn=USE_CUDNN, return_sequences=True)(shared)
-shared = keras.layers.GRU(64, use_cudnn=USE_CUDNN)(shared)
-shared = keras.layers.Dense(32, kernel_regularizer=keras.regularizers.l2(0.001))(shared)
+shared = normalizer(inputs)  # scale
+# shared = keras.layers.GRU(16, use_cudnn=USE_CUDNN, return_sequences=True, recurrent_dropout=DROPOUT, dropout=DROPOUT)(shared)
+shared = keras.layers.GRU(32, use_cudnn=USE_CUDNN)(shared)
+shared = keras.layers.Dense(16, kernel_regularizer=keras.regularizers.l2(0.001))(shared)
 # shared = keras.layers.BatchNormalization()(shared)
 shared = keras.layers.LeakyReLU()(shared)
-# shared = keras.layers.Dropout(0.2)(shared)
+# shared = keras.layers.Dropout(DROPOUT)(shared)
 
-# shared = keras.layers.Dense(16, kernel_regularizer=keras.regularizers.l2(0.001))(shared)
+# shared = keras.layers.Dense(8, kernel_regularizer=keras.regularizers.l2(0.01))(shared)
 # shared = keras.layers.LeakyReLU()(shared)
-# shared = keras.layers.Dropout(0.2)(shared)
+# shared = keras.layers.Dropout(DROPOUT)(shared)
 
 exp_output = keras.layers.Dense(1, activation='sigmoid', name='exp_output')(shared)
 
@@ -342,9 +343,19 @@ Y_train, Y_test = Y[:split_idx], Y[split_idx:]
 
 class_weight = {True: np.mean(~Y_train), False: np.mean(Y_train)}
 
+callbacks = [
+  # keras.callbacks.EarlyStopping(monitor='val_loss',
+  #                               patience=3,
+  #                               restore_best_weights=True),
+  # keras.callbacks.ReduceLROnPlateau(monitor='val_loss',
+  #                                   factor=0.5,
+  #                                   patience=2)
+]
+
 try:
-  model.fit(X_train, Y_train, batch_size=256, epochs=20, shuffle=True,
-            validation_data=(X_test, Y_test), class_weight=class_weight)
+  model.fit(X_train, Y_train, batch_size=64, epochs=40, shuffle=True,
+            validation_data=(X_test, Y_test), class_weight=class_weight,
+            callbacks=callbacks)
 except KeyboardInterrupt:
   pass
 
