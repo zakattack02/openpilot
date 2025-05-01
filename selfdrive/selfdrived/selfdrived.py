@@ -385,7 +385,7 @@ class SelfdriveD:
     self.sm.update(0)
 
     # trained on decimated qlogs, so 10hz
-    if self.sm.frame % 10 == 0:
+    if self.sm.frame % 50 == 0:
       sample = [CS.vEgo, CS.aEgo, CS.gasPressed, CS.brakePressed, self.enabled, self.sm['radarState'].leadOne.vLeadK, self.sm['radarState'].leadOne.dRel, self.sm['radarState'].leadOne.aLeadK,
                 self.sm['drivingModelData'].action.desiredCurvature, self.sm['drivingModelData'].action.desiredAcceleration]
       self.model_data.append(sample)

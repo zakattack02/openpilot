@@ -80,8 +80,8 @@ lrs = [
 # Corolla w/ new tune maneuvers
 # lr8 = list(LogReader('a2bddce0b6747e10/000002a9--a207f8b605', sort_by_time=True))
 
-DECIMATION = 10
-SECTION_LEN = 30 * DECIMATION
+DECIMATION = 2
+SECTION_LEN = 60 * DECIMATION
 STRIDE = 5 * DECIMATION
 
 X_sections = []
@@ -131,6 +131,7 @@ for stock_route, lr in tqdm(lrs):
   MDL = None
   prev_new_accel = 0
   long_active_frames = 0
+  frame = 0
 
   for msg in tqdm(lr):
     if msg.which() == 'carControl':
@@ -155,8 +156,13 @@ for stock_route, lr in tqdm(lrs):
       if not RD or not CS or not CC or not MDL:
         continue
 
-      if not CC.enabled:
+      frame += 1
+
+      if not CC.enabled and CS.standstill:
         reset_data()
+        continue
+
+      if frame % 5 != 0:  # gather at 2hz
         continue
 
       X_speeds.append(CS.vEgo)
