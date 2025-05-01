@@ -311,7 +311,7 @@ print('Samples', len(X))
 
 # the model
 
-USE_CUDNN = True
+USE_CUDNN = False
 inputs = keras.layers.Input(shape=X.shape[1:])
 shared = keras.layers.BatchNormalization()(inputs)  # too lazy to scale
 # shared = keras.layers.GRU(64, use_cudnn=USE_CUDNN, return_sequences=True)(shared)

@@ -139,7 +139,7 @@ class SelfdriveD:
       self.events.add(EventName.dashcamMode, static=True)
 
     self.model_len = 60 * 2
-    self.model_data = np.zeros((self.model_len, 8)).tolist()
+    self.model_data = np.zeros((self.model_len, 10)).tolist()
     self.model = ort.InferenceSession(BASEDIR + '/exp_mode.onnx')
 
   def update_events(self, CS):
