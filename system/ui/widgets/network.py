@@ -75,12 +75,7 @@ class WifiManagerUI:
     self._pending_network_update = False
 
     self.wifi_manager = wifi_manager
-    self.wifi_manager.set_callbacks(WifiManagerCallbacks(
-      self._on_need_auth,
-      self._on_activated,
-      self._on_forgotten,
-      self._on_network_updated
-    ))
+    self.wifi_manager.set_callbacks(WifiManagerCallbacks(self._on_need_auth, self._on_activated, self._on_forgotten, self._on_network_updated))
     self.wifi_manager.start()
     self.wifi_manager.connect()
 
@@ -118,6 +113,7 @@ class WifiManagerUI:
 
       case _:
         self._draw_network_list(rect)
+
   def _check_timeouts(self):
     """Check for timeouts on operations and transition states accordingly"""
     current_time = time.time()
