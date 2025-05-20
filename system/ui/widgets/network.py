@@ -37,6 +37,7 @@ class StateConnecting:
   network: NetworkInfo
   action: Literal["connecting"] = "connecting"
   start_time: float = 0.0  # Track when connection attempt started
+
 @dataclass
 class StateConnectionError:
   network: NetworkInfo
@@ -255,14 +256,6 @@ class WifiManagerUI:
   def _on_network_updated(self, networks: list[NetworkInfo]):
     self._networks = networks
     self._last_refresh_time = time.time()
-
-    # If we're in certain states, update our state to reflect network changes
-    match self.state:
-      case StateConnecting(network):
-        # Check if the network is now connected
-        updated_network = next((n for n in networks if n.ssid == network.ssid), None)
-        if updated_network and updated_network.is_connected:
-          self.state = StateIdle()
 
   def _on_need_auth(self, ssid):
     # When a network needs authentication
