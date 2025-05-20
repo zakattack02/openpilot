@@ -166,38 +166,26 @@ class WifiManagerUI:
 
     gui_label(ssid_rect, network.ssid, 55)
 
-    # Determine status text or buttons based on current UI state
     status_text = ""
-    is_active_network = False
-    # Check whether this network is in an active state
     match self.state:
       case StateConnecting(network=connecting):
-        is_active_network = connecting.ssid == network.ssid
-        if is_active_network:
+        if connecting.ssid == network.ssid:
           status_text = "CONNECTING..."
       case StateForgetting(network=forgetting):
-        is_active_network = forgetting.ssid == network.ssid
-        if is_active_network:
+        if forgetting.ssid == network.ssid:
           status_text = "FORGETTING..."
-    # Always show forget button for saved networks, but may be disabled
-    show_forget_button = network.is_saved
 
     if status_text:
       status_text_rect = rl.Rectangle(security_icon_rect.x - 410, rect.y, 410, ITEM_HEIGHT)
       gui_label(status_text_rect, status_text, font_size=48, alignment=rl.GuiTextAlignment.TEXT_ALIGN_CENTER)
-    elif show_forget_button:
-      # Show "Forget" button for saved networks, disabled during operations
+    elif network.is_saved:
+      # If the network is saved, show the "Forget" button
       forget_btn_rect = rl.Rectangle(security_icon_rect.x - self.btn_width - spacing,
         rect.y + (ITEM_HEIGHT - 80) / 2,
         self.btn_width,
         80,
       )
-      # Choose button style and enabled state based on UI state
-      button_style = ButtonStyle.ACTION
-      is_enabled = isinstance(self.state, StateIdle)
-      button_clicked = gui_button(forget_btn_rect, "Forget", button_style=button_style, is_enabled=is_enabled) and clicked
-      # Only handle click if button is active
-      if button_clicked:
+      if gui_button(forget_btn_rect, "Forget", button_style=ButtonStyle.ACTION, is_enabled=isinstance(self.state, StateIdle)) and clicked:
         self.state = StateShowForgetConfirm(network)
 
     # Always draw status and signal strength icons
