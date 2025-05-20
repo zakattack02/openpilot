@@ -168,11 +168,8 @@ class WifiManagerUI:
 
     # Determine status text or buttons based on current UI state
     status_text = ""
-    show_forget_button = False
-    is_interactive = False
-
-    # Check whether this network is in an active state
     is_active_network = False
+    # Check whether this network is in an active state
     match self.state:
       case StateConnecting(network=connecting):
         is_active_network = connecting.ssid == network.ssid
@@ -182,31 +179,33 @@ class WifiManagerUI:
         is_active_network = forgetting.ssid == network.ssid
         if is_active_network:
           status_text = "FORGETTING..."
-      case _:
-        # Only consider network interactive if we're in the idle state
-        is_interactive = isinstance(self.state, StateIdle)
-        # Only show forget button if network is saved and we're in idle state
-        show_forget_button = network.is_saved and is_interactive
+    # Always show forget button for saved networks, but may be disabled
+    show_forget_button = network.is_saved
 
     if status_text:
       status_text_rect = rl.Rectangle(security_icon_rect.x - 410, rect.y, 410, ITEM_HEIGHT)
       gui_label(status_text_rect, status_text, font_size=48, alignment=rl.GuiTextAlignment.TEXT_ALIGN_CENTER)
     elif show_forget_button:
-      # If the network is saved and not in a special state, show the "Forget" button
+      # Show "Forget" button for saved networks, disabled during operations
       forget_btn_rect = rl.Rectangle(security_icon_rect.x - self.btn_width - spacing,
         rect.y + (ITEM_HEIGHT - 80) / 2,
         self.btn_width,
         80,
       )
-      if gui_button(forget_btn_rect, "Forget", button_style=ButtonStyle.ACTION) and clicked:
+      # Choose button style and enabled state based on UI state
+      button_style = ButtonStyle.ACTION
+      is_enabled = isinstance(self.state, StateIdle)
+      button_clicked = gui_button(forget_btn_rect, "Forget", button_style=button_style, is_enabled=is_enabled) and clicked
+      # Only handle click if button is active
+      if button_clicked:
         self.state = StateShowForgetConfirm(network)
 
     # Always draw status and signal strength icons
     self._draw_status_icon(security_icon_rect, network)
     self._draw_signal_strength_icon(signal_icon_rect, network)
 
-    # Handle clicking on the network SSID - only if we're in idle state and this row isn't busy
-    if is_interactive and not is_active_network and rl.check_collision_point_rec(rl.get_mouse_position(), ssid_rect) and clicked:
+    # Handle clicking on the network SSID - only in idle state
+    if isinstance(self.state, StateIdle) and rl.check_collision_point_rec(rl.get_mouse_position(), ssid_rect) and clicked:
       if network.security_type == SecurityType.UNSUPPORTED:
         # Show error message for unsupported security types (like WPA3)
         self.state = StateConnectionError(network, "Unsupported security type")
