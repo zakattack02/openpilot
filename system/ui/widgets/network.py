@@ -102,10 +102,11 @@ class WifiManagerUI:
         elif result == 0:
           self.state = StateIdle()
 
-      case StateConnectionError(network, message):
+      case StateConnectionError(_, message):
         result = confirm_dialog(f"Connection Error: {message}", "OK")
         if result in (0, 1):  # Either button click returns to idle
           self.state = StateIdle()
+
       case StateShowForgetConfirm(network):
         result = confirm_dialog(f'Forget Wi-Fi Network "{network.ssid}"?', "Forget")
         if result == 1:
