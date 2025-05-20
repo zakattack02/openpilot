@@ -41,6 +41,14 @@ BUTTON_PRESSED_BACKGROUND_COLORS = {
   ButtonStyle.ACTION: rl.Color(130, 130, 130, 255),
 }
 
+BUTTON_DISABLED_BACKGROUND_COLORS = {
+  ButtonStyle.NORMAL: BUTTON_BACKGROUND_COLORS[ButtonStyle.NORMAL],
+  ButtonStyle.PRIMARY: rl.Color(70, 91, 234, 255),
+  ButtonStyle.DANGER: rl.Color(255, 36, 36, 255),
+  ButtonStyle.TRANSPARENT: rl.BLACK,
+  ButtonStyle.ACTION: rl.Color(130, 130, 130, 128),
+}
+
 _pressed_buttons: set[str] = set()  # Track mouse press state globally
 
 
@@ -65,9 +73,13 @@ def gui_button(
   if button_style == ButtonStyle.ACTION and font_size == DEFAULT_BUTTON_FONT_SIZE:
     font_size = ACTION_BUTTON_FONT_SIZE
 
-  # Set background color based on button type
-  bg_color = BUTTON_BACKGROUND_COLORS[button_style]
-  mouse_over = is_enabled and rl.check_collision_point_rec(rl.get_mouse_position(), rect)
+  # Set background color based on button style and enabled state
+  if is_enabled:
+    bg_color = BUTTON_BACKGROUND_COLORS[button_style]
+    mouse_over = rl.check_collision_point_rec(rl.get_mouse_position(), rect)
+  else:
+    bg_color = BUTTON_DISABLED_BACKGROUND_COLORS[button_style]
+    mouse_over = False
 
   if mouse_over:
     if rl.is_mouse_button_pressed(rl.MouseButton.MOUSE_BUTTON_LEFT):
