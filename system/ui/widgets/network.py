@@ -177,16 +177,11 @@ class WifiManagerUI:
       case StateConnecting(network=connecting):
         is_active_network = connecting.ssid == network.ssid
         if is_active_network:
-          # Calculate elapsed time for connection attempt
-          elapsed = time.time() - self.state.start_time
-          # Show elapsed time in seconds along with status
-          status_text = f"CONNECTING... ({int(elapsed)}s)"
+          status_text = "CONNECTING..."
       case StateForgetting(network=forgetting):
         is_active_network = forgetting.ssid == network.ssid
         if is_active_network:
-          # Calculate elapsed time for forget operation
-          elapsed = time.time() - self.state.start_time
-          status_text = f"FORGETTING... ({int(elapsed)}s)"
+          status_text = "FORGETTING..."
       case _:
         # Only consider network interactive if we're in the idle state
         is_interactive = isinstance(self.state, StateIdle)
