@@ -10,6 +10,7 @@ from openpilot.system.ui.lib.scroll_panel import GuiScrollPanel
 from openpilot.system.ui.lib.wifi_manager import NetworkInfo, WifiManagerCallbacks, WifiManagerWrapper, SecurityType
 from openpilot.system.ui.widgets.keyboard import Keyboard
 from openpilot.system.ui.widgets.confirm_dialog import confirm_dialog
+from openpilot.system.ui.widgets.message_dialog import message_dialog
 
 NM_DEVICE_STATE_NEED_AUTH = 60
 MIN_PASSWORD_LENGTH = 8
@@ -103,8 +104,8 @@ class WifiManagerUI:
           self.state = StateIdle()
 
       case StateConnectionError(_, message):
-        result = confirm_dialog(f"Connection Error: {message}", "OK")
-        if result in (0, 1):  # Either button click returns to idle
+        result = message_dialog(f"Connection Error: {message}")
+        if result == 1:
           self.state = StateIdle()
 
       case StateShowForgetConfirm(network):
