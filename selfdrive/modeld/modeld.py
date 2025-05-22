@@ -162,7 +162,8 @@ class ModelState:
           self.vision_inputs[key] = qcom_tensor_from_opencl_address(imgs_cl[key].mem_address, self.vision_input_shapes[key], dtype=dtypes.uint8)
     else:
       for key in imgs_cl:
-        frame_input = self.frames[key].buffer_from_cl(imgs_cl[key]).reshape(self.vision_input_shapes[key])
+        frame_input = self.frames[key].buffer_from_cl(imgs_cl[key])
+        frame_input = np.random.randn(1,12,512,1024)
         self.vision_inputs[key] = Tensor(frame_input, dtype=dtypes.uint8).realize()
 
     if prepare_only:
