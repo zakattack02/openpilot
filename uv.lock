@@ -1181,6 +1181,21 @@ wheels = [
 ]
 
 [[package]]
+name = "opendbc"
+version = "0.2.1"
+source = { git = "https://github.com/commaai/opendbc.git?rev=45bf6c8f548473dece52f780f60bd8e20c32bd65#45bf6c8f548473dece52f780f60bd8e20c32bd65" }
+dependencies = [
+    { name = "crcmod" },
+    { name = "cython" },
+    { name = "numpy" },
+    { name = "pycapnp" },
+    { name = "pycryptodome" },
+    { name = "scons" },
+    { name = "setuptools" },
+    { name = "tqdm" },
+]
+
+[[package]]
 name = "openpilot"
 version = "0.1.0"
 source = { editable = "." }
@@ -1197,6 +1212,7 @@ dependencies = [
     { name = "libusb1" },
     { name = "numpy" },
     { name = "onnx" },
+    { name = "pandacan", extra = ["full"] },
     { name = "psutil" },
     { name = "pyaudio" },
     { name = "pycapnp" },
@@ -1295,6 +1311,7 @@ requires-dist = [
     { name = "numpy", specifier = ">=2.0" },
     { name = "onnx", specifier = ">=1.14.0" },
     { name = "opencv-python-headless", marker = "extra == 'dev'" },
+    { name = "pandacan", extras = ["full"], git = "https://github.com/shreyanshjain7174/panda.git?rev=547e682e88247b14da27ae1f7fc4d2dbce2831a8" },
     { name = "parameterized", marker = "extra == 'dev'", specifier = ">=0.8,<0.9" },
     { name = "pre-commit-hooks", marker = "extra == 'testing'" },
     { name = "psutil" },
@@ -1393,6 +1410,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/0d/be/c4d1ded04c22b357277cf6e6a44c1ab4abb285a700bd1991460460e05b99/panda3d_simplepbr-0.13.1.tar.gz", hash = "sha256:c83766d7c8f47499f365a07fe1dff078fc8b3054c2689bdc8dceabddfe7f1a35", size = 6216055, upload-time = "2025-03-30T16:57:41.087Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/11/5d/3744c6550dddf933785a37cdd4a9921fe13284e6d115b5a2637fe390f158/panda3d_simplepbr-0.13.1-py3-none-any.whl", hash = "sha256:cda41cb57cff035b851646956cfbdcc408bee42511dabd4f2d7bd4fbf48c57a9", size = 2457097, upload-time = "2025-03-30T16:57:39.729Z" },
+]
+
+[[package]]
+name = "pandacan"
+version = "0.0.10"
+source = { git = "https://github.com/shreyanshjain7174/panda.git?rev=547e682e88247b14da27ae1f7fc4d2dbce2831a8#547e682e88247b14da27ae1f7fc4d2dbce2831a8" }
+dependencies = [
+    { name = "libusb1" },
+]
+
+[package.optional-dependencies]
+full = [
+    { name = "opendbc" },
 ]
 
 [[package]]
