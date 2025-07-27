@@ -328,7 +328,7 @@ Export('messaging')
 
 
 # Build other submodules
-SConscript(['panda/SConscript'])
+# panda is now installed as pandacan pip package, no longer built from source
 
 # Build rednose library
 SConscript(['rednose/SConscript'])

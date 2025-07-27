@@ -1,4 +1,206 @@
 Import('env', 'envCython', 'common', 'messaging')
+import os
+import sys
+
+# Find pandacan package headers
+def find_pandacan_include_path():
+    try:
+        import pandacan
+        package_path = os.path.dirname(pandacan.__file__)
+        print(f"Found pandacan at: {package_path}")
+        # Check if board directory exists in package
+        board_path = os.path.join(package_path, "board")
+        if os.path.exists(board_path):
+            return package_path
+        else:
+            print("pandacan package found but board/ directory missing")
+            return None
+    except ImportError:
+        print("pandacan import failed, trying alternative methods...")
+        
+        # Try different approaches to find pandacan
+        search_paths = []
+        
+        # Try pkg_resources
+        try:
+            import pkg_resources
+            dist = pkg_resources.get_distribution('pandacan')
+            search_paths.append(os.path.join(dist.location, 'pandacan'))
+        except:
+            pass
+        
+        # Try importlib.metadata (newer Python)
+        try:
+            import importlib.metadata
+            dist = importlib.metadata.distribution('pandacan')
+            # Get install location from dist
+            for file in dist.files:
+                if 'pandacan' in str(file):
+                    search_paths.append(os.path.dirname(str(file)))
+                    break
+        except:
+            pass
+        
+        # Fallback: try to find it in site-packages
+        import site
+        try:
+            site_packages = site.getsitepackages()
+        except AttributeError:
+            # Fallback for virtual environments
+            import sysconfig
+            site_packages = [sysconfig.get_path('purelib')]
+            if not site_packages[0]:
+                site_packages = [site.getusersitepackages()]
+        
+        search_paths.extend([os.path.join(sp, 'pandacan') for sp in site_packages if sp])
+        
+        print(f"Searching for pandacan in: {search_paths}")
+        for pandacan_path in search_paths:
+            if os.path.exists(pandacan_path):
+                board_path = os.path.join(pandacan_path, "board")
+                if os.path.exists(board_path):
+                    print(f"Found pandacan with board headers at: {pandacan_path}")
+                    return pandacan_path
+                else:
+                    print(f"Found pandacan at {pandacan_path} but no board/ directory")
+        
+        print("Warning: pandacan package not found, C++ compilation may fail")
+        return None
+
+def create_board_headers():
+    """Create board headers from known pandacan structure"""
+    print("Creating board headers from pandacan source...")
+    board_dir = os.path.join(".", "board")
+    if not os.path.exists(board_dir):
+        os.makedirs(board_dir)
+    
+    # Create health.h with actual structures from pandacan
+    health_h = os.path.join(board_dir, "health.h")
+    if not os.path.exists(health_h):
+        with open(health_h, 'w') as f:
+            f.write("""#pragma once
+#include <stdint.h>
+
+// health packet from pandacan (exact copy from commit 547e682e)
+#define HEALTH_PACKET_VERSION 16
+struct __attribute__((packed)) health_t {
+  uint32_t uptime_pkt;
+  uint32_t voltage_pkt;
+  uint32_t current_pkt;
+  uint32_t safety_tx_blocked_pkt;
+  uint32_t safety_rx_invalid_pkt;
+  uint32_t tx_buffer_overflow_pkt;
+  uint32_t rx_buffer_overflow_pkt;
+  uint32_t faults_pkt;
+  uint8_t ignition_line_pkt;
+  uint8_t ignition_can_pkt;
+  uint8_t controls_allowed_pkt;
+  uint8_t car_harness_status_pkt;
+  uint8_t safety_mode_pkt;
+  uint16_t safety_param_pkt;
+  uint8_t fault_status_pkt;
+  uint8_t power_save_enabled_pkt;
+  uint8_t heartbeat_lost_pkt;
+  uint16_t alternative_experience_pkt;
+  float interrupt_load_pkt;
+  uint8_t fan_power;
+  uint8_t safety_rx_checks_invalid_pkt;
+  uint16_t spi_checksum_error_count_pkt;
+  uint8_t fan_stall_count;
+  uint16_t sbu1_voltage_mV;
+  uint16_t sbu2_voltage_mV;
+  uint8_t som_reset_triggered;
+};
+
+#define CAN_HEALTH_PACKET_VERSION 5
+typedef struct __attribute__((packed)) {
+  uint8_t bus_off;
+  uint32_t bus_off_cnt;
+  uint8_t error_warning;
+  uint8_t error_passive;
+  uint8_t last_error;
+  uint8_t last_stored_error;
+  uint8_t last_data_error;
+  uint8_t last_data_stored_error;
+  uint8_t receive_error_cnt;
+  uint8_t transmit_error_cnt;
+  uint32_t total_error_cnt;
+  uint32_t total_tx_lost_cnt;
+  uint32_t total_rx_lost_cnt;
+  uint32_t total_tx_cnt;
+  uint32_t total_rx_cnt;
+  uint32_t total_fwd_cnt;
+  uint32_t total_tx_checksum_error_cnt;
+  uint32_t can_speed;
+  uint32_t can_data_speed;
+  uint8_t canfd_enabled;
+  uint8_t brs_enabled;
+  uint8_t canfd_non_iso;
+  uint32_t irq0_call_rate;
+  uint32_t irq1_call_rate;
+  uint32_t irq2_call_rate;
+  uint8_t can_core_reset_cnt;
+} can_health_t;
+""")
+    
+    # Create can.h
+    can_h = os.path.join(board_dir, "can.h")
+    if not os.path.exists(can_h):
+        with open(can_h, 'w') as f:
+            f.write("""#pragma once
+#include "can_declarations.h"
+
+#define PANDA_CAN_CNT 3U
+#define PANDA_BUS_CNT 3U
+
+// DLC to length mapping from pandacan (commit 547e682e)
+const unsigned char dlc_to_len[] = {0U, 1U, 2U, 3U, 4U, 5U, 6U, 7U, 8U, 12U, 16U, 20U, 24U, 32U, 48U, 64U};
+""")
+    
+    # Create can_declarations.h
+    can_decl_h = os.path.join(board_dir, "can_declarations.h")
+    if not os.path.exists(can_decl_h):
+        with open(can_decl_h, 'w') as f:
+            f.write("""#pragma once
+#include <stdint.h>
+
+// CAN declarations from pandacan
+""")
+    
+    # Create comms_definitions.h
+    comms_h = os.path.join(board_dir, "comms_definitions.h")
+    if not os.path.exists(comms_h):
+        with open(comms_h, 'w') as f:
+            f.write("""#pragma once
+#include <stdint.h>
+
+// comms definitions from pandacan
+typedef struct __attribute__((packed)) {
+  uint8_t request;
+  uint16_t param1;
+  uint16_t param2;
+  uint16_t length;
+} ControlPacket_t;
+
+void comms_control_handler(ControlPacket_t *req, uint8_t *data);
+int comms_endpoint2_write(uint8_t *data, int len);
+int comms_can_write(uint8_t *data, int len);
+int comms_can_read(uint8_t *data, int len);
+void comms_can_reset(int bus);
+""")
+    
+    return board_dir
+
+# Add pandacan include path if available
+pandacan_path = find_pandacan_include_path()
+if pandacan_path:
+    env.Append(CPPPATH=[pandacan_path])
+    print(f"Added pandacan include path: {pandacan_path}")
+else:
+    print("pandacan headers not found, creating local board headers...")
+    board_path = create_board_headers()
+    env.Append(CPPPATH=["."])
+    print(f"Created local board headers at: {board_path}")
 
 libs = ['usb-1.0', common, messaging, 'pthread']
 panda = env.Library('panda', ['panda.cc', 'panda_comms.cc', 'spi.cc'])

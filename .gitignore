@@ -44,6 +44,7 @@ compare_runtime*.html
 
 persist
 selfdrive/pandad/pandad
+selfdrive/pandad/board/
 cereal/services.h
 cereal/gen
 cereal/messaging/bridge

@@ -6,7 +6,7 @@ import time
 import signal
 import subprocess
 
-from panda import Panda, PandaDFU, PandaProtocolMismatch, FW_PATH
+from pandacan import Panda, PandaDFU, PandaProtocolMismatch, FW_PATH
 from openpilot.common.basedir import BASEDIR
 from openpilot.common.params import Params
 from openpilot.system.hardware import HARDWARE
@@ -16,7 +16,8 @@ from openpilot.common.swaglog import cloudlog
 def get_expected_signature(panda: Panda) -> bytes:
   try:
     fn = os.path.join(FW_PATH, panda.get_mcu_type().config.app_fn)
-    return Panda.get_signature_from_firmware(fn)
+    result = Panda.get_signature_from_firmware(fn)
+    return bytes(result) if result is not None else b""
   except Exception:
     cloudlog.exception("Error computing expected signature")
     return b""
