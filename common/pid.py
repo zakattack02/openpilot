@@ -1,8 +1,11 @@
 import numpy as np
 from numbers import Number
+from typing import Callable
+
 
 class PIDController:
-  def __init__(self, k_p, k_i, k_f=0., k_d=0., pos_limit=1e308, neg_limit=-1e308, rate=100):
+  def __init__(self, k_p, k_i, k_f=0., k_d=0., pos_limit: float | Callable[[float], float] = 1e308,
+               neg_limit: float | Callable[[float], float] = -1e308, rate=100):
     self._k_p = k_p
     self._k_i = k_i
     self._k_d = k_d
@@ -46,7 +49,8 @@ class PIDController:
     self.f = 0.0
     self.control = 0
 
-  def update(self, error, error_rate=0.0, speed=0.0, override=False, feedforward=0., freeze_integrator=False):
+  def update(self, error, error_rate=0.0, speed=0.0, override=False, feedforward=0., freeze_integrator=False,
+             convert_control: Callable[[float], float] = lambda x: x):
     self.speed = speed
 
     self.p = float(error) * self.k_p
@@ -57,14 +61,20 @@ class PIDController:
       self.i -= self.i_unwind_rate * float(np.sign(self.i))
     else:
       if not freeze_integrator:
-        self.i = self.i + error * self.k_i * self.i_rate
+        i = self.i + error * self.k_i * self.i_rate
+        control = convert_control(self.p + i + self.d + self.f)
 
-        # Clip i to prevent exceeding control limits
-        control_no_i = self.p + self.d + self.f
-        control_no_i = np.clip(control_no_i, self.neg_limit, self.pos_limit)
-        self.i = np.clip(self.i, self.neg_limit - control_no_i, self.pos_limit - control_no_i)
+        # TODO: Revert https://github.com/commaai/openpilot/pull/33970
+        # TODO: handle feedforward raising control above limits and i not unwinding. go into override path?
+        # TODO: determine if override is actually faster than unwinding here. i think so? since error could still be pushing i up (not updated)
 
-    control = self.p + self.i + self.d + self.f
+        # Update when changing i will move the control away from the limits
+        # or when i will move towards the sign of the error
+        if ((error >= 0 and (control <= self.pos_limit or i < 0.0)) or  # TODO: is this check actually wrong?
+            (error <= 0 and (control >= self.neg_limit or i > 0.0))):
+          self.i = i
+
+    control = convert_control(self.p + self.i + self.d + self.f)
 
     self.control = np.clip(control, self.neg_limit, self.pos_limit)
     return self.control
