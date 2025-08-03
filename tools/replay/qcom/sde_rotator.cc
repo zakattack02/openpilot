@@ -131,8 +131,7 @@ int SdeRotator::putFrame(VisionBuf *ubwc)
   return 0;
 }
 
-VisionBuf* SdeRotator::getFrame(int timeout_ms)
-{
+VisionBuf* SdeRotator::getFrame(int timeout_ms) {
   if (!queued)                       // nothing in flight
     return nullptr;
 
