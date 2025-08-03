@@ -265,7 +265,10 @@ bool FFmpegVideoDecoder::copyBuffer(AVFrame *f, VisionBuf *buf) {
 }
 
 bool QcomVideoDecoder::open(AVCodecParameters *codecpar, bool hw_decoder) {
-  assert(codecpar->codec_id == AV_CODEC_ID_HEVC); // currently only HEVC is supported
+  if (codecpar->codec_id != AV_CODEC_ID_HEVC) {
+    rError("Hardware decoder only supports HEVC codec");
+    return false;
+  }
   width = codecpar->width;
   height = codecpar->height;
   msm_vidc.init(VIDEO_DEVICE, width, height, V4L2_PIX_FMT_HEVC);

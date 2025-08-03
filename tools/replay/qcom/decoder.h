@@ -1,19 +1,13 @@
 #pragma once
-#include <linux/videodev2.h>
-#include <linux/v4l2-controls.h>
-#include <stdint.h>
-#include <limits.h>
-#include <poll.h>
-#include <list>
 
-#include "third_party/linux/include/media/msm_vidc.h"
-#include "msgq/visionipc/visionbuf.h"
 #include "sde_rotator.h"
+#include "third_party/linux/include/media/msm_vidc.h"
 
 extern "C" {
 	#include <libavcodec/avcodec.h>
 	#include <libavformat/avformat.h>
 }
+
 
 #define VIDEO_DEVICE "/dev/video32"
 #define OUTPUT_BUFFER_COUNT 	8

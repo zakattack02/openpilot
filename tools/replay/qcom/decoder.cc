@@ -1,15 +1,12 @@
-#include <sys/signalfd.h>
-#include <cstdlib>
-#include <cstdio>
-#include <string>
-#include <deque>
+#include "decoder.h"
 
 #include <assert.h>
-#include "decoder.h"
+#include <linux/v4l2-controls.h>
+#include <linux/videodev2.h>
+#include <sys/signalfd.h>
+
 #include "common/swaglog.h"
 #include "common/util.h"
-#include <cstdio>
-
 
 static void checked_ioctl(int fd, unsigned long request, void *argp) {
   int ret = util::safe_ioctl(fd, request, argp);

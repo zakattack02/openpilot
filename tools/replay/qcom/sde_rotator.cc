@@ -1,9 +1,18 @@
 #include "sde_rotator.h"
-#include "third_party/linux/include/msm_media_info.h"
-#include "common/swaglog.h"
+
+#include <assert.h>
 #include <cstdio>
+#include <errno.h>
+#include <fcntl.h>
 #include <linux/ion.h>
 #include <msm_ion.h>
+#include <string.h>
+#include <sys/ioctl.h>
+#include <sys/mman.h>
+
+#include "common/util.h"
+#include "common/swaglog.h"
+#include "third_party/linux/include/msm_media_info.h"
 
 #ifndef V4L2_PIX_FMT_NV12_UBWC
 #define V4L2_PIX_FMT_NV12_UBWC v4l2_fourcc('Q', '1', '2', '8')
@@ -25,7 +34,6 @@ static void request_buffers(int fd, v4l2_buf_type buf_type, unsigned int count) 
   };
   checked_ioctl(fd, VIDIOC_REQBUFS, &reqbuf);
 }
-
 
 bool SdeRotator::init(const char *dev) {
   LOGD("Initializing sde_rot device %s", dev);
@@ -112,7 +120,6 @@ int SdeRotator::putFrame(VisionBuf *ubwc)
 {
   if (ubwc->width != cap_buf.width || ubwc->height != cap_buf.height)
     configUBWCtoNV12(ubwc->width, ubwc->height);
-
   /* OUTPUT (UBWC) */
   struct v4l2_buffer out = {};
   out.type      = V4L2_BUF_TYPE_VIDEO_OUTPUT;
@@ -121,7 +128,6 @@ int SdeRotator::putFrame(VisionBuf *ubwc)
   out.m.userptr = static_cast<unsigned long>(ubwc->fd);
   out.length    = fmt_out.fmt.pix.sizeimage;
   checked_ioctl(fd, VIDIOC_QBUF, &out);
-
   /* CAPTURE (linear NV12) – use previously cached cap_desc */
   struct v4l2_buffer cap = cap_desc;
   cap.m.userptr = static_cast<unsigned long>(cap_buf.fd);
@@ -132,18 +138,14 @@ int SdeRotator::putFrame(VisionBuf *ubwc)
 }
 
 VisionBuf* SdeRotator::getFrame(int timeout_ms) {
-  if (!queued)                       // nothing in flight
+  if (poll(&pfd, 1, timeout_ms) <= 0 || !queued) { // timeout or in flight
     return nullptr;
-
-  if (poll(&pfd, 1, timeout_ms) <= 0)   // timeout or error
-    return nullptr;
-
+  }
   /* dequeue CAPTURE */
   struct v4l2_buffer cap = {};
   cap.type   = V4L2_BUF_TYPE_VIDEO_CAPTURE;
   cap.memory = V4L2_MEMORY_USERPTR;
   checked_ioctl(fd, VIDIOC_DQBUF, &cap);
-
   /* dequeue OUTPUT (frees the slot) */
   struct v4l2_buffer out = {};
   out.type   = V4L2_BUF_TYPE_VIDEO_OUTPUT;

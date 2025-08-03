@@ -1,21 +1,12 @@
 #pragma once
 
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/ioctl.h>
 #include <linux/videodev2.h>
-#include <sys/mman.h>
-#include <errno.h>
-#include <string.h>
-#include <stdlib.h>
-#include <assert.h>
 #include <poll.h>
-#include "common/util.h"
-#include "common/swaglog.h"
+
 #include "msgq/visionipc/visionbuf.h"
 
-#define ROTATOR_DEVICE "/dev/video2"
 
+#define ROTATOR_DEVICE "/dev/video2"
 
 class SdeRotator {
 public:
