@@ -17,7 +17,7 @@ FAKE_SEND = os.getenv("FAKESEND") == "1"
 class PandaRunner:
   def __init__(self, serials, pandas):
     self.pandas = pandas
-    self.serials = set(serials)
+    self.usb_pandas = set([p.get_usb_serial() for p in pandas if not p.spi])
     self.hw_types = [int.from_bytes(p.get_type(), 'big') for p in pandas]
 
     for panda in self.pandas:
@@ -101,9 +101,8 @@ class PandaRunner:
         # Process panda state at 10 Hz
         if rk.frame % 10 == 0:
           ignition = self.state_mgr.process(engaged, self.pm)
-          if not ignition:
-            current_serials = set(Panda.list())
-            if current_serials != self.serials:
+          if not ignition and rk.frame % 100 == 0:
+            if set(Panda.list(usb_only=True)) != self.usb_pandas:
               cloudlog.warning("Reconnecting to new panda")
               evt.set()
               break
