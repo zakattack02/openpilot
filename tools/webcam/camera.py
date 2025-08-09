@@ -15,6 +15,8 @@ class Camera:
 
     self.cap = cv.VideoCapture(camera_id)
 
+    self.cap.set(cv.CAP_PROP_FOURCC, cv.VideoWriter_fourcc(*'MJPG'))
+
     self.cap.set(cv.CAP_PROP_FRAME_WIDTH, 1280.0)
     self.cap.set(cv.CAP_PROP_FRAME_HEIGHT, 720.0)
     self.cap.set(cv.CAP_PROP_FPS, 25.0)
