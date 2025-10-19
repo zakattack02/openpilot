@@ -29,9 +29,19 @@ def joystickd_thread():
     cc_msg = messaging.new_message('carControl')
     cc_msg.valid = True
     CC = cc_msg.carControl
-    CC.enabled = sm['selfdriveState'].enabled
-    CC.latActive = sm['selfdriveState'].active and not sm['carState'].steerFaultTemporary and not sm['carState'].steerFaultPermanent
-    CC.longActive = CC.enabled and not any(e.overrideLongitudinal for e in sm['onroadEvents']) and CP.openpilotLongitudinalControl
+
+    # In joystick debug mode, allow control even if openpilot isn't engaged
+    # Require cruise to be available (main button on)
+    joystick_mode = params.get_bool("JoystickDebugMode")
+    if joystick_mode and sm['carState'].cruiseState.available:
+      CC.enabled = True
+      CC.latActive = not sm['carState'].steerFaultTemporary and not sm['carState'].steerFaultPermanent
+      CC.longActive = CC.enabled and not any(e.overrideLongitudinal for e in sm['onroadEvents']) and CP.openpilotLongitudinalControl
+    else:
+      CC.enabled = sm['selfdriveState'].enabled
+      CC.latActive = sm['selfdriveState'].active and not sm['carState'].steerFaultTemporary and not sm['carState'].steerFaultPermanent
+      CC.longActive = CC.enabled and not any(e.overrideLongitudinal for e in sm['onroadEvents']) and CP.openpilotLongitudinalControl
+
     CC.cruiseControl.cancel = sm['carState'].cruiseState.enabled and (not CC.enabled or not CP.pcmCruise)
     CC.hudControl.leadDistanceBars = 2
 

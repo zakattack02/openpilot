@@ -128,9 +128,14 @@ if __name__ == '__main__':
   parser.add_argument('--keyboard', action='store_true', help='Use your keyboard instead of a joystick')
   args = parser.parse_args()
 
+  # Allow joystick control while onroad when JoystickDebugMode is enabled
   if not Params().get_bool("IsOffroad") and "ZMQ" not in os.environ:
-    print("The car must be off before running joystick_control.")
-    exit()
+    if not Params().get_bool("JoystickDebugMode"):
+      print("The car must be off before running joystick_control.")
+      print("Enable JoystickDebugMode to use joystick while onroad.")
+      exit()
+    else:
+      print("WARNING: JoystickDebugMode enabled - allowing joystick control while onroad!")
 
   print()
   if args.keyboard:

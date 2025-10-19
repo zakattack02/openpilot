@@ -2,6 +2,8 @@
 #include "selfdrive/ui/qt/widgets/ssh_keys.h"
 #include "selfdrive/ui/qt/widgets/controls.h"
 
+#include <QProcess>
+
 DeveloperPanel::DeveloperPanel(SettingsWindow *parent) : ListWidget(parent) {
   adbToggle = new ParamControl("AdbEnabled", tr("Enable ADB"),
             tr("ADB (Android Debug Bridge) allows connecting to your device over USB or over the network. See https://docs.comma.ai/how-to/connect-to-comma for more info."), "");
@@ -17,6 +19,18 @@ DeveloperPanel::DeveloperPanel(SettingsWindow *parent) : ListWidget(parent) {
     longManeuverToggle->refresh();
   });
   addItem(joystickToggle);
+
+    // Joystick Control Button
+    auto joystickButton = new ButtonControl(tr("Start Joystick Control"), tr("START"),
+                                     tr("Launch joystick control to use a PS5 controller or keyboard to control your car. Requires JoystickDebugMode to be enabled."));
+    connect(joystickButton, &ButtonControl::clicked, [=]() {
+      if (ConfirmationDialog::confirm(tr("Start joystick control?\n\nMake sure:\n1. Joystick Debug Mode is enabled\n2. openpilot manager is running\n3. PS5 controller is connected"), tr("Start"), this)) {
+        QString command = "cd /home/kanucks/Documents/openpilot && gnome-terminal -- bash -c './tools/joystick/run_with_openpilot.sh; exec bash'";
+        QProcess::startDetached("/bin/bash", QStringList() << "-c" << command);
+      }
+    });
+    addItem(joystickButton);
+
 
   longManeuverToggle = new ParamControl("LongitudinalManeuverMode", tr("Longitudinal Maneuver Mode"), "", "");
   QObject::connect(longManeuverToggle, &ParamControl::toggleFlipped, [=](bool state) {
