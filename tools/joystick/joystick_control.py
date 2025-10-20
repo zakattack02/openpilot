@@ -126,7 +126,15 @@ if __name__ == '__main__':
                                                'a PlayStation 5 DualSense controller on the comma 3X.',
                                    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
   parser.add_argument('--keyboard', action='store_true', help='Use your keyboard instead of a joystick')
+  parser.add_argument('--allow-onroad', action='store_true', help='Explicitly enable joystick while onroad by setting JoystickDebugMode before checks')
   args = parser.parse_args()
+
+  # Optionally allow joystick control while onroad. If --allow-onroad is passed,
+  # enable JoystickDebugMode before the offroad check so the script can start
+  # while driving (explicit opt-in required).
+  if args.allow_onroad:
+    Params().put_bool('JoystickDebugMode', True)
+    print('WARNING: --allow-onroad used: JoystickDebugMode enabled (explicit override)')
 
   # Allow joystick control while onroad when JoystickDebugMode is enabled
   if not Params().get_bool("IsOffroad") and "ZMQ" not in os.environ:
